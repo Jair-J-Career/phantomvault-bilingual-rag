@@ -1,19 +1,28 @@
 import os
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_classic.chains import create_retrieval_chain
 from langchain_core.prompts import ChatPromptTemplate
-
-# NEW: Import the Google Gemini modules
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 
 app = FastAPI()
+
+# Configure CORS for React connection
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 os.makedirs("temp_uploads", exist_ok=True)
 
-# NEW: Initialize Gemini instead of OpenAI
+# Initialize Gemini 2.5 and new Embeddings
 embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
 
@@ -21,7 +30,7 @@ vector_store = None
 
 @app.get("/")
 def read_root():
-    return {"status": "PhantomVault API is Online (Powered by Gemini)"}
+    return {"status": "PhantomVault API is Online (Bilingual Mode)"}
 
 @app.post("/api/upload")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -38,7 +47,6 @@ async def upload_pdf(file: UploadFile = File(...)):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = text_splitter.split_documents(documents)
     
-    # This will now use Gemini to create the mathematical vectors
     vector_store = Chroma.from_documents(documents=chunks, embedding=embeddings)
     
     return {"status": "File processed and memorized!", "chunks": len(chunks)}
