@@ -13,21 +13,19 @@ from app.config import settings
 from app.limiter import limiter
 from app.api.router import api_router
 
-# ── logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-# ── lifespan ─────────────────────────────────────────────────────────────────
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs(settings.upload_dir, exist_ok=True)
     os.makedirs(settings.chroma_persist_dir, exist_ok=True)
     logger.info("PhantomVault API starting up")
 
-    # Run startup cleanup to remove stale data from previous runs
     try:
         from app.services.cleanup import run_cleanup
         result = run_cleanup()
@@ -39,14 +37,12 @@ async def lifespan(app: FastAPI):
     logger.info("PhantomVault API shutting down")
 
 
-# ── app factory ───────────────────────────────────────────────────────────────
 app = FastAPI(
     title="PhantomVault Bilingual RAG API",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# Rate limiter state and handler
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -59,7 +55,6 @@ app.add_middleware(
 )
 
 
-# ── request ID middleware ─────────────────────────────────────────────────────
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
     request_id = str(uuid.uuid4())
@@ -69,7 +64,6 @@ async def add_request_id(request: Request, call_next):
     return response
 
 
-# ── global error handler ──────────────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     request_id = getattr(request.state, "request_id", "unknown")
@@ -82,10 +76,9 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# ── routes ────────────────────────────────────────────────────────────────────
 app.include_router(api_router)
 
 
 @app.get("/")
 def root():
-    return {"status": "PhantomVault API is Online (Bilingual Mode)", "version": "1.0.0"}
+    return {"status": "PhantomVault API online", "version": "1.0.0"}

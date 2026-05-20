@@ -2,10 +2,6 @@ import { useState, useCallback, useRef } from 'react';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-/**
- * Connects to the /api/agent SSE endpoint and streams step results.
- * Returns { steps, answer, isRunning, error, run, reset }.
- */
 export default function useAgentStream() {
   const [steps, setSteps] = useState([]);
   const [answer, setAnswer] = useState('');
@@ -24,7 +20,7 @@ export default function useAgentStream() {
     reset();
     setIsRunning(true);
 
-    // Use fetch + ReadableStream for SSE (works with POST body)
+    // fetch + ReadableStream for SSE (needed because body is POST)
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -51,7 +47,7 @@ export default function useAgentStream() {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        buffer = lines.pop(); // keep incomplete line
+        buffer = lines.pop();
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;

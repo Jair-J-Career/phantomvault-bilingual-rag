@@ -36,8 +36,3 @@ export async function runAgent(sessionId, query) {
     body: JSON.stringify({ session_id: sessionId, query, stream: false }),
   });
 }
-
-export function createAgentStream(sessionId, query) {
-  const url = `${BASE_URL}/api/agent`;
-  return { sessionId, query, url };
-}

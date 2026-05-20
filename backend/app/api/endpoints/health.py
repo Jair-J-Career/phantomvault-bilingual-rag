@@ -32,5 +32,4 @@ def health_check():
 
 @router.get("/ready")
 def readiness():
-    """Simple readiness probe — returns 200 if the service can accept traffic."""
     return {"ready": True}

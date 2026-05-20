@@ -213,3 +213,8 @@ backend/.env
 frontend/.env
 node_modules/
 frontend/dist/
+
+# Editor / tool config
+.claude/
+.vscode/
+.idea/

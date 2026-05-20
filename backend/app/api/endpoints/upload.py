@@ -25,7 +25,6 @@ _PDF_MAGIC = b"%PDF"
 )
 @_rate_limit
 async def upload_pdf(request: Request, file: UploadFile = File(...)):
-    # ── validation ───────────────────────────────────────────────────────────
     if file.content_type not in ("application/pdf", "application/octet-stream"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
 
@@ -42,7 +41,6 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
             status_code=400, detail="File does not appear to be a valid PDF."
         )
 
-    # ── sanitise filename and persist ────────────────────────────────────────
     safe_name = Path(file.filename or "upload.pdf").name
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -55,7 +53,6 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
         logger.error("Failed to write upload: %s", exc)
         raise HTTPException(status_code=500, detail="Could not save uploaded file.")
 
-    # ── process and embed ────────────────────────────────────────────────────
     try:
         chunks = load_and_split(file_path)
         if not chunks:

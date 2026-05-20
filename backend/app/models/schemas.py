@@ -39,7 +39,6 @@ class HealthResponse(BaseModel):
     google_api_key_present: bool
 
 
-# ── Agentic RAG schemas ──────────────────────────────────────────────────────
 
 class AgentRequest(BaseModel):
     session_id: str

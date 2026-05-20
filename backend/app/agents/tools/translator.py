@@ -1,9 +1,5 @@
-"""
-Translation tool — uses Gemini with a prompt optimised for fidelity.
-Handles both single strings and lists of chunk dicts.
-"""
 import logging
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -21,7 +17,6 @@ Text to translate:
 
 
 def translate_text(text: str, source_lang: str, target_lang: str) -> str:
-    """Translate a single string."""
     if source_lang == target_lang:
         return text
 
@@ -36,18 +31,16 @@ def translate_text(text: str, source_lang: str, target_lang: str) -> str:
         return translated
     except Exception as exc:
         logger.error("Translation failed: %s", exc)
-        return text  # graceful degradation — return original
+        return text  # return original on failure
 
 
 def translate_chunks(
     chunks: List[Dict[str, Any]], source_lang: str, target_lang: str
 ) -> List[Dict[str, Any]]:
-    """Translate the 'content' field of each chunk dict."""
     if source_lang == target_lang:
         return chunks
 
-    translated = []
-    for chunk in chunks:
-        translated_content = translate_text(chunk["content"], source_lang, target_lang)
-        translated.append({**chunk, "content": translated_content})
-    return translated
+    return [
+        {**chunk, "content": translate_text(chunk["content"], source_lang, target_lang)}
+        for chunk in chunks
+    ]

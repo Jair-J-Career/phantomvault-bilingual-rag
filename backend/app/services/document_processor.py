@@ -13,7 +13,6 @@ CHUNK_OVERLAP = 200
 
 
 def load_and_split(file_path: str | Path) -> List[Document]:
-    """Load a PDF and split it into chunks."""
     path = Path(file_path)
     logger.info("Loading PDF: %s", path.name)
 

@@ -1,14 +1,3 @@
-"""
-PlannerAgent — decomposes a user query into a JSON plan, then executes it
-step-by-step using the tool registry.
-
-Execution flow:
-  1. Call Gemini with the planner system prompt to get a JSON plan.
-  2. Validate the plan against the tool registry.
-  3. Execute each step sequentially, threading outputs into subsequent steps.
-  4. Yield StepResult after each step (supports streaming).
-  5. Return the final answer.
-"""
 import json
 import logging
 import time
@@ -30,32 +19,20 @@ class PlannerAgent:
         self.session_id = session_id
         self._llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
 
-    # ── public interface ─────────────────────────────────────────────────────
-
     def run(self, query: str) -> tuple[str, List[StepResult]]:
-        """Execute the full agentic pipeline. Returns (answer, steps)."""
         steps: List[StepResult] = []
         for step_result, _ in self._execute(query):
             steps.append(step_result)
-        # The last step's output_summary is the final answer
         answer = steps[-1].output_summary if steps else "No answer generated."
         return answer, steps
 
     def stream(self, query: str) -> Generator[StepResult, None, None]:
-        """Yield StepResult as each tool completes."""
         for step_result, _ in self._execute(query):
             yield step_result
 
-    # ── internals ────────────────────────────────────────────────────────────
-
     def _execute(self, query: str):
-        """
-        Core execution generator.
-        Yields (StepResult, raw_output) tuples.
-        """
         plan = self._plan(query)
 
-        # Shared state across steps
         chunks: List[Dict[str, Any]] = []
         detected_lang = "en"
         final_answer = ""
@@ -136,12 +113,11 @@ class PlannerAgent:
             yield step_result, output
 
     def _plan(self, query: str) -> List[Dict[str, Any]]:
-        """Ask Gemini to produce a JSON execution plan, then validate it."""
         prompt = f"{PLANNER_SYSTEM_PROMPT}\n\nUser query: {query}"
         try:
             result = self._llm.invoke(prompt)
             raw = result.content.strip()
-            # Strip markdown fences if present
+            # strip markdown fences if present
             if raw.startswith("```"):
                 raw = raw.split("```")[1]
                 if raw.startswith("json"):
@@ -156,7 +132,6 @@ class PlannerAgent:
     def _validate_plan(
         self, plan: List[Dict[str, Any]], query: str
     ) -> List[Dict[str, Any]]:
-        """Remove steps with unknown tools. Ensure at least detect+retrieve+answer."""
         valid = [s for s in plan if isinstance(s, dict) and s.get("tool") in VALID_TOOLS]
         if not valid:
             logger.warning("Plan was empty or all-invalid — using fallback")
@@ -165,7 +140,6 @@ class PlannerAgent:
 
     @staticmethod
     def _fallback_plan(query: str) -> List[Dict[str, Any]]:
-        """Minimal safe plan used when the LLM planner fails."""
         return [
             {"tool": "detect_language", "input": {"text": query}},
             {"tool": "retrieve", "input": {"query": query, "top_k": 5}},

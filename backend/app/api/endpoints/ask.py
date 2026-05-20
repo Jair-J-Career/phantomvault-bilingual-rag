@@ -14,17 +14,12 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = (
-    "You are an expert bilingual assistant. "
+    "You are a bilingual assistant. "
     "Use the following pieces of retrieved context to answer the user's question. "
-    "CRITICAL INSTRUCTION: You must detect the language of the user's question and "
-    "reply EXCLUSIVELY in that same language. If the context is in English but the "
-    "question is in Spanish, translate the facts and answer natively in Spanish.\n\n"
+    "Detect the language of the question and reply in that same language — "
+    "if the context is in English but the question is in Spanish, answer natively in Spanish.\n\n"
     "Context: {context}"
 )
-
-
-def _get_llm() -> ChatGoogleGenerativeAI:
-    return ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
 
 
 @router.post(
@@ -47,7 +42,8 @@ async def ask_question(request: Request, body: AskRequest):
         prompt = ChatPromptTemplate.from_messages(
             [("system", _SYSTEM_PROMPT), ("human", "{input}")]
         )
-        qa_chain = create_stuff_documents_chain(_get_llm(), prompt)
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+        qa_chain = create_stuff_documents_chain(llm, prompt)
         rag_chain = create_retrieval_chain(retriever, qa_chain)
 
         response = rag_chain.invoke({"input": body.question})

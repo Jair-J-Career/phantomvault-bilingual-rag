@@ -1,7 +1,3 @@
-"""
-POST /api/agent — Agentic RAG endpoint.
-Supports synchronous (stream=false) and SSE streaming (stream=true) modes.
-"""
 import json
 import logging
 
@@ -46,7 +42,6 @@ async def run_agent(request: Request, body: AgentRequest):
             },
         )
 
-    # Synchronous mode
     try:
         answer, steps = agent.run(body.query)
     except Exception as exc:
@@ -62,13 +57,12 @@ async def run_agent(request: Request, body: AgentRequest):
 
 
 async def _sse_generator(agent: PlannerAgent, query: str):
-    """Yields SSE events for each agent step, then the final answer event."""
     try:
         final_answer = ""
         steps = []
         for step_result in agent.stream(query):
             steps.append(step_result)
-            if step_result.tool == "answer" or step_result.tool == "summarize":
+            if step_result.tool in ("answer", "summarize"):
                 final_answer = step_result.output_summary
 
             event_data = json.dumps(
@@ -83,7 +77,6 @@ async def _sse_generator(agent: PlannerAgent, query: str):
             )
             yield f"data: {event_data}\n\n"
 
-        # Final answer event
         done_data = json.dumps({"type": "done", "answer": final_answer})
         yield f"data: {done_data}\n\n"
 

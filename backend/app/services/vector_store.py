@@ -14,25 +14,17 @@ logger = logging.getLogger(__name__)
 
 
 class VectorStoreManager:
-    """
-    Manages per-session persistent ChromaDB collections.
-    Each uploaded document gets its own collection keyed by session_id.
-    """
-
     def __init__(self) -> None:
         persist_dir = Path(settings.chroma_persist_dir)
         persist_dir.mkdir(parents=True, exist_ok=True)
         self._client = chromadb.PersistentClient(path=str(persist_dir))
         logger.info("ChromaDB persistent client initialised at %s", persist_dir)
 
-    # ── public API ──────────────────────────────────────────────────────────
-
     def create_session(self, chunks: List[Document]) -> str:
-        """Embed chunks and store them in a new collection. Returns session_id."""
         session_id = uuid.uuid4().hex
         collection_name = f"session_{session_id}"
 
-        vector_store = Chroma.from_documents(
+        Chroma.from_documents(
             documents=chunks,
             embedding=get_embeddings(),
             client=self._client,
@@ -44,7 +36,6 @@ class VectorStoreManager:
         return session_id
 
     def get_retriever(self, session_id: str, top_k: int = 5):
-        """Return a LangChain retriever for an existing session."""
         collection_name = f"session_{session_id}"
         self._assert_collection_exists(collection_name)
 
@@ -58,7 +49,6 @@ class VectorStoreManager:
     def similarity_search(
         self, session_id: str, query: str, top_k: int = 5
     ) -> List[Document]:
-        """Direct similarity search, returns Document list."""
         collection_name = f"session_{session_id}"
         self._assert_collection_exists(collection_name)
 
@@ -93,18 +83,14 @@ class VectorStoreManager:
                 sessions.append(name[len("session_"):])
         return sessions
 
-    # ── private helpers ─────────────────────────────────────────────────────
-
     def _assert_collection_exists(self, collection_name: str) -> None:
         try:
             self._client.get_collection(collection_name)
         except Exception:
-            raise ValueError(
-                f"Session not found. Please upload a document first."
-            )
+            raise ValueError("Session not found. Please upload a document first.")
 
 
-# Module-level singleton — created once, reused across requests
+# singleton
 _manager: Optional[VectorStoreManager] = None
 
 

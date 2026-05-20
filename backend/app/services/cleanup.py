@@ -1,8 +1,3 @@
-"""
-Background cleanup: deletes uploaded files and ChromaDB collections
-that are older than MAX_AGE_HOURS hours.
-Called from the FastAPI lifespan on startup and can be triggered manually.
-"""
 import logging
 import os
 import time
@@ -17,7 +12,6 @@ MAX_AGE_SECONDS = MAX_AGE_HOURS * 3600
 
 
 def cleanup_old_uploads() -> int:
-    """Delete uploaded PDF files older than MAX_AGE_HOURS. Returns count deleted."""
     upload_dir = Path(settings.upload_dir)
     if not upload_dir.exists():
         return 0
@@ -36,10 +30,8 @@ def cleanup_old_uploads() -> int:
 
 
 def cleanup_old_collections() -> int:
-    """Delete ChromaDB collections whose backing metadata is older than MAX_AGE_HOURS."""
     try:
         from app.services.vector_store import get_vector_store_manager
-        import chromadb
 
         manager = get_vector_store_manager()
         chroma_dir = Path(settings.chroma_persist_dir)
@@ -47,7 +39,6 @@ def cleanup_old_collections() -> int:
         deleted = 0
 
         for session_id in manager.list_sessions():
-            # Proxy age via the chroma directory mtime of the collection folder
             col_path = chroma_dir / f"session_{session_id}"
             if col_path.exists() and col_path.stat().st_mtime < cutoff:
                 manager.delete_session(session_id)
